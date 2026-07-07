@@ -9,7 +9,8 @@ The Infrahub JetBrains Plugin provides development tools for Infrahub, an infras
 `src/main/kotlin/app/opsmill/infrahub/toolwindow/InfrahubToolWindowFactory.kt` is the main activation point. It:
 1. Creates three tool window tabs (Servers, Schema, YAML)
 2. Wires up `ServerTreePanel` with auto-refresh (10-second interval)
-3. Provides stub panels for Schema and YAML (Phases 4 and 5)
+3. Wires up `SchemaTreePanel` to parse and display schema files from the configured schema directory
+4. Provides a stub panel for YAML (Phase 5)
 
 ## Activation
 
@@ -21,6 +22,9 @@ The plugin activates on IDE startup. The tool window is always visible once the 
 src/main/kotlin/app/opsmill/infrahub/
 ├── toolwindow/
 │   ├── InfrahubToolWindowFactory.kt      # Entry point, tab wiring
+│   ├── schema/
+│   │   ├── SchemaTreeModel.kt            # Tree model and node types for schema files
+│   │   └── SchemaTreePanel.kt            # Schema panel, YAML parsing, file navigation
 │   └── server/
 │       ├── ServerTreeModel.kt            # Tree model for servers and branches
 │       └── ServerTreePanel.kt            # Servers panel with auto-refresh
@@ -45,7 +49,7 @@ src/main/kotlin/app/opsmill/infrahub/
 | 2 | Settings / Configuration Service | Done |
 | 3 | API layer + Server tree panel | Done |
 | 6 | Branch management actions | Done |
-| 4 | Schema tree panel | TODO |
+| 4 | Schema tree panel | Done |
 | 5 | YAML tree panel | TODO |
 | 7 | GraphQL query execution | TODO |
 | 8 | Go-to-definition + document outline | TODO |
@@ -60,6 +64,8 @@ Actions are registered in `plugin.xml` under `<actions>` and added to menu group
 
 ### Tree View Data Flow
 `ServerTreeModel` implements `javax.swing.tree.TreeModel`. It holds `DefaultMutableTreeNode` instances for servers and branches. `ServerTreePanel` drives a 10-second `javax.swing.Timer` to refresh.
+
+`SchemaTreePanel` uses SnakeYAML to parse `schemas/**/*.yml` and `schemas/**/*.yaml`, then builds a `DefaultTreeModel` with file nodes plus schema entry nodes for nodes, generics, attributes, and relationships.
 
 ### Dialogs
 Server and branch selection uses `Messages.showChooseDialog` (radio button list). Input and confirmation use `Messages.showInputDialog` and `Messages.showYesNoDialog`.
@@ -85,6 +91,7 @@ API tokens support `${env:VAR_NAME}` syntax resolved by `EnvVarResolver`.
 |---------|---------|
 | `okhttp3` | HTTP client for API calls |
 | `kotlinx-serialization-json` | JSON parsing matching `@Serializable` models |
+| `org.yaml:snakeyaml` | YAML parsing for schema and YAML panels |
 | IntelliJ Platform SDK | UI, actions, tool windows, JCEF |
 
 ## Build

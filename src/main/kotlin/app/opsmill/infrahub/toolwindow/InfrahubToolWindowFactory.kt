@@ -1,14 +1,12 @@
 package app.opsmill.infrahub.toolwindow
 
-import app.opsmill.infrahub.settings.InfrahubSettingsState
+import app.opsmill.infrahub.toolwindow.schema.SchemaTreePanel
 import app.opsmill.infrahub.toolwindow.server.ServerTreePanel
 import com.intellij.openapi.components.Service
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.wm.ToolWindow
 import com.intellij.openapi.wm.ToolWindowFactory
-import com.intellij.ui.content.Content
 import com.intellij.ui.content.ContentFactory
-import org.jdom.Element
 
 /**
  * Factory for the Infrahub tool window.
@@ -28,10 +26,8 @@ class InfrahubToolWindowFactory : ToolWindowFactory {
         val serversContent = contentFactory.createContent(serverPanel, "Servers", false)
         toolWindow.contentManager.addContent(serversContent)
 
-        // Tab 2: Schema (stub for Phase 4)
-        val schemaPanel = SchemaTreePanel(project).apply {
-            content.text = "Schema panel — coming in Phase 4"
-        }
+        // Tab 2: Schema
+        val schemaPanel = SchemaTreePanel(project).also { it.init() }
         projectService.setSchemaTreePanel(schemaPanel)
         val schemaContent = contentFactory.createContent(schemaPanel, "Schema", false)
         toolWindow.contentManager.addContent(schemaContent)
@@ -51,19 +47,7 @@ class InfrahubToolWindowFactory : ToolWindowFactory {
 }
 
 /**
- * Stub Schema tree panel — to be implemented in Phase 4.
- */
-class SchemaTreePanel(private val project: Project) : javax.swing.JPanel() {
-    val content = javax.swing.JLabel()
-
-    init {
-        layout = javax.swing.BoxLayout(this, javax.swing.BoxLayout.Y_AXIS)
-        add(content)
-    }
-}
-
-/**
- * Stub YAML tree panel — to be implemented in Phase 5.
+ * Stub YAML tree panel - to be implemented in Phase 5.
  */
 class YamlTreePanel(private val project: Project) : javax.swing.JPanel() {
     val content = javax.swing.JLabel()
@@ -101,8 +85,13 @@ class InfrahubProjectService(private val project: Project) {
         serverTreePanel?.refresh()
     }
 
+    fun refreshSchemaTree() {
+        schemaTreePanel?.refresh()
+    }
+
     fun refreshAll() {
         refreshServerTree()
+        refreshSchemaTree()
     }
 
     companion object {

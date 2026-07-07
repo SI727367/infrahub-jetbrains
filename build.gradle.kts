@@ -25,6 +25,9 @@ dependencies {
     // JSON parsing - kotlinx-serialization (matches @Serializable data classes)
     implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.6.3")
 
+    // YAML parsing for schema and Infrahub config files
+    implementation("org.yaml:snakeyaml:2.2")
+
     testImplementation("junit:junit:4.13.2")
 
     // MockWebServer for unit tests
