@@ -2,6 +2,7 @@ package app.opsmill.infrahub.actions
 
 import app.opsmill.infrahub.api.InfrahubClientManager
 import app.opsmill.infrahub.common.ProjectTaskRunner
+import app.opsmill.infrahub.common.SelectionDialogs
 import app.opsmill.infrahub.settings.InfrahubSettingsState
 import app.opsmill.infrahub.visualizer.SchemaVisualizerPanel
 import com.intellij.openapi.actionSystem.AnAction
@@ -21,19 +22,11 @@ class VisualizeSchemaAction : AnAction("Visualize Schema") {
             return
         }
 
-        val serverNames = servers.map { it.name }.toTypedArray()
-        val serverIndex = Messages.showChooseDialog(
+        val serverName = SelectionDialogs.chooseString(
             project,
-            "Select Infrahub server",
-            "Visualize Schema",
-            null,
-            serverNames,
-            serverNames.first()
-        )
-        if (serverIndex < 0) {
-            return
-        }
-        val serverName = serverNames[serverIndex]
+            "Visualize Schema - Select Infrahub server",
+            servers.map { it.name }
+        ) ?: return
         val client = InfrahubClientManager.getInstance().getClient(serverName)
         if (client == null) {
             Messages.showErrorDialog(project, "No client available for server: $serverName", "Infrahub")
@@ -43,25 +36,18 @@ class VisualizeSchemaAction : AnAction("Visualize Schema") {
         ProjectTaskRunner.runBackground(project, "Load Infrahub branches") {
             try {
                 val branches = runBlocking { client.getAllBranches() }
-                val branchNames = branches.map { it.name }.toTypedArray()
+                val branchNames = branches.map { it.name }
                 if (branchNames.isEmpty()) {
                     showError(project, "No branches found for server: $serverName")
                     return@runBackground
                 }
 
                 ProjectTaskRunner.onUiThread {
-                    val branchIndex = Messages.showChooseDialog(
+                    val branchName = SelectionDialogs.chooseString(
                         project,
-                        "Select branch",
-                        "Visualize Schema",
-                        null,
-                        branchNames,
-                        branchNames.firstOrNull()
-                    )
-                    if (branchIndex < 0) {
-                        return@onUiThread
-                    }
-                    val branchName = branchNames[branchIndex]
+                        "Visualize Schema - Select branch",
+                        branchNames
+                    ) ?: return@onUiThread
 
                     ProjectTaskRunner.runBackground(project, "Fetch Infrahub schema") {
                         try {

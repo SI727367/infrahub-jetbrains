@@ -1,6 +1,7 @@
 package app.opsmill.infrahub.infrahubctl
 
 import app.opsmill.infrahub.api.InfrahubClientManager
+import app.opsmill.infrahub.common.SelectionDialogs
 import app.opsmill.infrahub.settings.InfrahubSettingsState
 import com.intellij.execution.ExecutionException
 import com.intellij.execution.configurations.GeneralCommandLine
@@ -96,20 +97,13 @@ object InfrahubctlRunner {
             return null
         }
 
-        val serverNames = servers.map { it.name }.toTypedArray()
-        val serverIndex = Messages.showChooseDialog(
+        val serverName = SelectionDialogs.chooseString(
             project,
-            "Select Infrahub server",
-            "Infrahub",
-            null,
-            serverNames,
-            serverNames.first()
-        )
-        if (serverIndex < 0) {
-            return null
-        }
+            "Infrahub - Select server",
+            servers.map { it.name }
+        ) ?: return null
 
-        val server = servers[serverIndex]
+        val server = servers.firstOrNull { it.name == serverName } ?: return null
         val client = InfrahubClientManager.getInstance().getClient(server.name)
         if (client == null) {
             Messages.showErrorDialog(project, "No client available for server: ${server.name}", "Infrahub")
@@ -118,27 +112,24 @@ object InfrahubctlRunner {
 
         return try {
             val branches = runBlocking { client.getAllBranches() }
-            val branchNames = branches.map { it.name }.toTypedArray()
+            val branchNames = branches.map { it.name }
             if (branchNames.isEmpty()) {
                 Messages.showErrorDialog(project, "No branches found for server: ${server.name}", "Infrahub")
                 null
             } else {
-                val branchIndex = Messages.showChooseDialog(
+                val branchName = SelectionDialogs.chooseString(
                     project,
-                    "Select branch",
-                    "Infrahub",
-                    null,
-                    branchNames,
-                    branchNames.first()
+                    "Infrahub - Select branch",
+                    branchNames
                 )
-                if (branchIndex < 0) {
+                if (branchName == null) {
                     null
                 } else {
                     SelectedServerBranch(
                         serverName = server.name,
                         serverAddress = server.address,
                         token = server.apiToken,
-                        branchName = branchNames[branchIndex]
+                        branchName = branchName
                     )
                 }
             }

@@ -2,6 +2,7 @@ package app.opsmill.infrahub.toolwindow.yaml
 
 import app.opsmill.infrahub.api.InfrahubClientManager
 import app.opsmill.infrahub.common.ProjectTaskRunner
+import app.opsmill.infrahub.common.SelectionDialogs
 import app.opsmill.infrahub.infrahubctl.InfrahubctlRunner
 import app.opsmill.infrahub.graphql.GraphQLResultDialog
 import app.opsmill.infrahub.graphql.GraphQLVariableParser
@@ -188,19 +189,11 @@ class YamlTreePanel(private val project: Project) : JPanel(BorderLayout()), Disp
             return
         }
 
-        val serverNames = serverConfigs.map { it.name }.toTypedArray()
-        val serverIndex = Messages.showChooseDialog(
+        val serverName = SelectionDialogs.chooseString(
             project,
-            "Select Infrahub server",
-            "Execute GraphQL Query",
-            null,
-            serverNames,
-            serverNames.first()
-        )
-        if (serverIndex < 0) {
-            return
-        }
-        val serverName = serverNames[serverIndex]
+            "Execute GraphQL Query - Select Infrahub server",
+            serverConfigs.map { it.name }
+        ) ?: return
 
         val client = InfrahubClientManager.getInstance().getClient(serverName)
         if (client == null) {
@@ -211,7 +204,7 @@ class YamlTreePanel(private val project: Project) : JPanel(BorderLayout()), Disp
         ProjectTaskRunner.runBackground(project, "Load Infrahub branches") {
             try {
                 val branches = runBlocking { client.getAllBranches() }
-                val branchNames = branches.map { it.name }.toTypedArray()
+                val branchNames = branches.map { it.name }
                 if (branchNames.isEmpty()) {
                     ProjectTaskRunner.onUiThread {
                         Messages.showErrorDialog(project, "No branches found for server: $serverName", "Infrahub")
@@ -220,18 +213,11 @@ class YamlTreePanel(private val project: Project) : JPanel(BorderLayout()), Disp
                 }
 
                 ProjectTaskRunner.onUiThread {
-                    val branchIndex = Messages.showChooseDialog(
+                    val branchName = SelectionDialogs.chooseString(
                         project,
-                        "Select branch",
-                        "Execute GraphQL Query",
-                        null,
-                        branchNames,
-                        branchNames.firstOrNull()
-                    )
-                    if (branchIndex < 0) {
-                        return@onUiThread
-                    }
-                    val branchName = branchNames[branchIndex]
+                        "Execute GraphQL Query - Select branch",
+                        branchNames
+                    ) ?: return@onUiThread
 
                     ProjectTaskRunner.runBackground(project, "Execute GraphQL Query") {
                         try {
