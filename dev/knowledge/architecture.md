@@ -42,7 +42,8 @@ src/main/kotlin/app/opsmill/infrahub/
 │   ├── RunTransformAction.kt            # Run infrahubctl transform command
 │   └── ShowInfrahubctlGuidanceAction.kt # Open infrahubctl installation guidance
 ├── common/
-│   └── ProjectTaskRunner.kt             # Background task helper for UI-safe async flows
+│   ├── ProjectTaskRunner.kt             # Background task helper for UI-safe async flows
+│   └── SelectionDialogs.kt              # Reusable non-deprecated list selection dialogs
 ├── settings/
 │   ├── InfrahubSettingsState.kt         # Persistent settings (servers, schema dir)
 │   ├── InfrahubSettingsConfigurable.kt  # Settings UI panel
@@ -91,6 +92,8 @@ Actions are registered in `plugin.xml` under `<actions>` and added to menu group
 
 `SchemaTreePanel` uses SnakeYAML to parse `schemas/**/*.yml` and `schemas/**/*.yaml`, then builds a `DefaultTreeModel` with file nodes plus schema entry nodes for nodes, generics, attributes, and relationships. Its popup menu can also run infrahubctl schema check/load operations for the selected file or the whole configured schema directory.
 
+`ServerTreePanel` renders configured servers and their branches, refreshes branch state on a timer, and now exposes context menu actions directly from the tree. Server nodes can refresh, create a branch, or open schema visualization for a selected branch. Branch nodes can delete non-default branches and then trigger a server tree refresh through `InfrahubProjectService`.
+
 `YamlTreePanel` parses `.infrahub.yml` or `.infrahub.yaml`, renders sections like queries, transforms, artifact definitions, generators, and checks, and resolves linked file paths where present. Its popup menu can execute GraphQL queries and run infrahubctl transforms for selected transform items or artifact-linked transformations.
 
 GraphQL query execution is launched from YAML query items. The flow parses variables from the query file, prompts for values, prompts for server and branch, executes against the selected branch, and shows formatted JSON results in a dialog. Long-running steps now use a small background-task helper instead of `GlobalScope`, keeping UI updates on the EDT.
@@ -100,10 +103,10 @@ The status bar widget polls the first configured server every 10 seconds and sho
 infrahubctl-backed actions prompt for server and then fetch real branches from the selected server before execution, resolve the executable from either the configured `infrahubctlPath` or the system `PATH`, and then run schema check, schema load, or transform commands with `INFRAHUB_ADDRESS` and `INFRAHUB_API_TOKEN` set in the process environment. A dedicated guidance action can open the installation documentation in the browser.
 
 ### Background Execution
-`ProjectTaskRunner` wraps IntelliJ `Task.Backgroundable` and provides a small `onUiThread` helper. It is used for GraphQL branch loading, GraphQL execution, and schema visualization fetches.
+`ProjectTaskRunner` wraps IntelliJ `Task.Backgroundable` and provides a small `onUiThread` helper. It is used for GraphQL branch loading, GraphQL execution, schema visualization fetches, and server tree context menu operations that mix background API calls with UI dialogs.
 
 ### Dialogs
-Server and branch selection uses `Messages.showChooseDialog` (radio button list). Input and confirmation use `Messages.showInputDialog` and `Messages.showYesNoDialog`.
+Server and branch selection now uses `SelectionDialogs.chooseString`, a reusable `DialogWrapper`-based list picker that replaces deprecated `Messages.showChooseDialog` usage. Input and confirmation still use `Messages.showInputDialog` and `Messages.showYesNoDialog` where appropriate.
 
 ### Language Features
 Schema YAML files now support go-to-definition and structure view integration. `InfrahubGotoDeclarationHandler` resolves combined `namespace + name` references across schema files, and `InfrahubStructureViewFactory` builds an outline for nodes, generics, attributes, and relationships.
