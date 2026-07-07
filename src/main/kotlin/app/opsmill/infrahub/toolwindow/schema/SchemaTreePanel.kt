@@ -34,6 +34,8 @@ class SchemaTreePanel(private val project: Project) : JPanel(BorderLayout()), Di
     private val cardLayout = CardLayout()
     private val cards = JPanel(cardLayout)
     private val refreshButton = JButton("Refresh", AllIcons.Actions.Refresh)
+    private val checkAllButton = JButton("Check All")
+    private val loadAllButton = JButton("Load All")
     private val messageBusConnection = project.messageBus.connect(this)
 
     init {
@@ -43,12 +45,22 @@ class SchemaTreePanel(private val project: Project) : JPanel(BorderLayout()), Di
         tree.selectionModel.selectionMode = javax.swing.tree.TreeSelectionModel.SINGLE_TREE_SELECTION
         tree.addTreeSelectionListener(::handleSelection)
 
+        val toolbarActions = JPanel().apply {
+            layout = BoxLayout(this, BoxLayout.X_AXIS)
+            add(checkAllButton)
+            add(Box.createHorizontalStrut(4))
+            add(loadAllButton)
+            add(Box.createHorizontalStrut(4))
+            add(refreshButton)
+        }
         val toolbar = JPanel(BorderLayout()).apply {
             border = BorderFactory.createEmptyBorder(4, 4, 4, 4)
             add(JLabel("Schema"), BorderLayout.WEST)
-            add(refreshButton, BorderLayout.EAST)
+            add(toolbarActions, BorderLayout.EAST)
         }
         refreshButton.addActionListener { refresh() }
+        checkAllButton.addActionListener { runSchemaDirectoryCommand("check") }
+        loadAllButton.addActionListener { runSchemaDirectoryCommand("load") }
 
         val scrollPane = ScrollPaneFactory.createScrollPane(tree)
         cards.add(scrollPane, "tree")
@@ -121,18 +133,10 @@ class SchemaTreePanel(private val project: Project) : JPanel(BorderLayout()), Di
             }
         })
         popupMenu.add(JMenuItem("Check All Schema Files").apply {
-            addActionListener {
-                SchemaTreeParser(project).resolveSchemaDirectory()?.let {
-                    InfrahubctlRunner.runSchemaCommand(project, it, "check")
-                }
-            }
+            addActionListener { runSchemaDirectoryCommand("check") }
         })
         popupMenu.add(JMenuItem("Load All Schema Files").apply {
-            addActionListener {
-                SchemaTreeParser(project).resolveSchemaDirectory()?.let {
-                    InfrahubctlRunner.runSchemaCommand(project, it, "load")
-                }
-            }
+            addActionListener { runSchemaDirectoryCommand("load") }
         })
         tree.componentPopupMenu = popupMenu
     }
@@ -150,6 +154,12 @@ class SchemaTreePanel(private val project: Project) : JPanel(BorderLayout()), Di
         val schemaDir = SchemaTreeParser(project).resolveSchemaDirectory() ?: return
         val virtualFile = LocalFileSystem.getInstance().refreshAndFindFileByIoFile(schemaDir) ?: return
         OpenFileDescriptor(project, virtualFile).navigate(true)
+    }
+
+    private fun runSchemaDirectoryCommand(action: String) {
+        SchemaTreeParser(project).resolveSchemaDirectory()?.let {
+            InfrahubctlRunner.runSchemaCommand(project, it, action)
+        }
     }
 
     private fun openFile(path: String) {
