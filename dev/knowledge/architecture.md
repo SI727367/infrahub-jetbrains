@@ -40,6 +40,8 @@ src/main/kotlin/app/opsmill/infrahub/
 │   └── EnvVarResolver.kt               # ${env:VAR} substitution
 ├── graphql/
 │   └── GraphQLSupport.kt               # Variable parsing, prompt dialog, result dialog
+├── statusbar/
+│   └── InfrahubStatusBarWidgetFactory.kt # Status bar widget, first-server version refresh
 └── api/
     ├── InfrahubClient.kt               # HTTP client (OkHttp + kotlinx-serialization)
     ├── InfrahubClientManager.kt        # Client cache, keyed by server name
@@ -59,7 +61,7 @@ src/main/kotlin/app/opsmill/infrahub/
 | 7 | GraphQL query execution | Done |
 | 8 | Go-to-definition + document outline | TODO |
 | 9 | Schema visualizer (JCEF) | TODO |
-| 10 | Status bar | TODO |
+| 10 | Status bar | Done |
 | 11 | infrahubctl integration | TODO |
 
 ## Key Patterns
@@ -75,6 +77,8 @@ Actions are registered in `plugin.xml` under `<actions>` and added to menu group
 `YamlTreePanel` parses `.infrahub.yml` or `.infrahub.yaml`, renders sections like queries, transforms, artifact definitions, generators, and checks, and resolves linked file paths where present.
 
 GraphQL query execution is launched from YAML query items. The flow parses variables from the query file, prompts for values, prompts for server and branch, executes against the selected branch, and shows formatted JSON results in a dialog.
+
+The status bar widget polls the first configured server every 10 seconds and shows `Infrahub: v{version} ({serverName})`, `Server unreachable`, or `No server set`.
 
 ### Dialogs
 Server and branch selection uses `Messages.showChooseDialog` (radio button list). Input and confirmation use `Messages.showInputDialog` and `Messages.showYesNoDialog`.

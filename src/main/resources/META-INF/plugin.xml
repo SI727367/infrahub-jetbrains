@@ -14,6 +14,8 @@
     <extensions defaultExtensionNs="com.intellij">
         <applicationConfigurable instance="app.opsmill.infrahub.settings.InfrahubSettingsConfigurable"
             displayName="Infrahub" id="app.opsmill.infrahub.settings"/>
+        <statusBarWidgetFactory id="InfrahubStatusBar"
+            implementation="app.opsmill.infrahub.statusbar.InfrahubStatusBarWidgetFactory"/>
     </extensions>
 
     <!-- Phase 6: Branch Management Actions -->
