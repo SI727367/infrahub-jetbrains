@@ -85,7 +85,7 @@ src/main/kotlin/app/opsmill/infrahub/
 ## Key Patterns
 
 ### Action Registration
-Actions are registered in `plugin.xml` under `<actions>` and added to menu groups. Each action extends `AnAction` and implements `actionPerformed(e: AnActionEvent)`.
+Actions are registered in `plugin.xml` under `<actions>` and added to menu groups. Each action extends `AnAction` and implements `actionPerformed(e: AnActionEvent)`. Schema check/load actions are now also attached to `ProjectViewPopupMenu` and selected editor tab context menus, with `update()` methods that limit visibility to YAML files or schema directories.
 
 ### Tree View Data Flow
 `ServerTreeModel` implements `javax.swing.tree.TreeModel`. It holds `DefaultMutableTreeNode` instances for servers and branches. `ServerTreePanel` drives a 10-second `javax.swing.Timer` to refresh.

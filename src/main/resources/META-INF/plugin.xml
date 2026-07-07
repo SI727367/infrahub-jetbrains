@@ -39,18 +39,24 @@
         <action id="Infrahub.CheckSchemaFile" class="app.opsmill.infrahub.actions.CheckSchemaFileAction"
             text="Check Schema File" description="Validate a schema file with infrahubctl">
             <add-to-group group-id="ToolsMenu" anchor="after" relative-to-action="Infrahub.VisualizeSchema"/>
+            <add-to-group group-id="ProjectViewPopupMenu" anchor="last"/>
+            <add-to-group group-id="EditorTabPopupMenu" anchor="last"/>
         </action>
         <action id="Infrahub.LoadSchemaFile" class="app.opsmill.infrahub.actions.LoadSchemaFileAction"
             text="Load Schema File" description="Load a schema file with infrahubctl">
             <add-to-group group-id="ToolsMenu" anchor="after" relative-to-action="Infrahub.CheckSchemaFile"/>
+            <add-to-group group-id="ProjectViewPopupMenu" anchor="last"/>
+            <add-to-group group-id="EditorTabPopupMenu" anchor="last"/>
         </action>
         <action id="Infrahub.CheckAllSchemaFiles" class="app.opsmill.infrahub.actions.CheckAllSchemaFilesAction"
-            text="Check All Schema Files" description="Validate all schema files with infrahubctl">
+            text="Check Schema File or Directory" description="Validate a schema file or directory with infrahubctl">
             <add-to-group group-id="ToolsMenu" anchor="after" relative-to-action="Infrahub.LoadSchemaFile"/>
+            <add-to-group group-id="ProjectViewPopupMenu" anchor="last"/>
         </action>
         <action id="Infrahub.LoadAllSchemaFiles" class="app.opsmill.infrahub.actions.LoadAllSchemaFilesAction"
-            text="Load All Schema Files" description="Load all schema files with infrahubctl">
+            text="Load Schema File or Directory" description="Load a schema file or directory with infrahubctl">
             <add-to-group group-id="ToolsMenu" anchor="after" relative-to-action="Infrahub.CheckAllSchemaFiles"/>
+            <add-to-group group-id="ProjectViewPopupMenu" anchor="last"/>
         </action>
         <action id="Infrahub.RunTransform" class="app.opsmill.infrahub.actions.RunTransformAction"
             text="Run Transform" description="Run an Infrahub transform with infrahubctl">

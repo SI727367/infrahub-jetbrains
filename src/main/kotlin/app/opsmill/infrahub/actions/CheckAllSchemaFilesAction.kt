@@ -4,6 +4,8 @@ import app.opsmill.infrahub.infrahubctl.InfrahubctlRunner
 import app.opsmill.infrahub.toolwindow.schema.SchemaTreeParser
 import com.intellij.openapi.actionSystem.AnAction
 import com.intellij.openapi.actionSystem.AnActionEvent
+import com.intellij.openapi.actionSystem.CommonDataKeys
+import com.intellij.openapi.vfs.VirtualFile
 
 class CheckAllSchemaFilesAction : AnAction("Check All Schema Files") {
 
@@ -13,8 +15,21 @@ class CheckAllSchemaFilesAction : AnAction("Check All Schema Files") {
             return
         }
 
-        val schemaDirectory = SchemaTreeParser(project).resolveSchemaDirectory() ?: return
+        val schemaDirectory = resolveSchemaTarget(e) ?: SchemaTreeParser(project).resolveSchemaDirectory() ?: return
         val selected = InfrahubctlRunner.promptServerAndBranch(project) ?: return
         InfrahubctlRunner.runCommand(project, selected, schemaDirectory, "schema", "check", schemaDirectory.absolutePath, "--branch", selected.branchName)
+    }
+
+    override fun update(e: AnActionEvent) {
+        e.presentation.isEnabledAndVisible = e.project != null && resolveSchemaTarget(e) != null
+    }
+
+    private fun resolveSchemaTarget(e: AnActionEvent): java.io.File? {
+        val virtualFile = e.getData(CommonDataKeys.VIRTUAL_FILE) ?: return e.project?.let { SchemaTreeParser(it).resolveSchemaDirectory() }
+        return virtualFile.takeIf(::isSchemaTarget)?.let { java.io.File(it.path) }
+    }
+
+    private fun isSchemaTarget(virtualFile: VirtualFile): Boolean {
+        return virtualFile.isDirectory || virtualFile.extension == "yml" || virtualFile.extension == "yaml"
     }
 }

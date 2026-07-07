@@ -3,6 +3,8 @@ package app.opsmill.infrahub.actions
 import app.opsmill.infrahub.infrahubctl.InfrahubctlRunner
 import com.intellij.openapi.actionSystem.AnAction
 import com.intellij.openapi.actionSystem.AnActionEvent
+import com.intellij.openapi.actionSystem.CommonDataKeys
+import com.intellij.openapi.vfs.VirtualFile
 import java.io.File
 
 class LoadSchemaFileAction : AnAction("Load Schema File") {
@@ -14,8 +16,17 @@ class LoadSchemaFileAction : AnAction("Load Schema File") {
         }
 
         val selected = InfrahubctlRunner.promptServerAndBranch(project) ?: return
-        val virtualFile = e.getData(com.intellij.openapi.actionSystem.CommonDataKeys.VIRTUAL_FILE) ?: return
+        val virtualFile = e.getData(CommonDataKeys.VIRTUAL_FILE)?.takeIf(::isSchemaFile) ?: return
         val file = File(virtualFile.path)
         InfrahubctlRunner.runCommand(project, selected, file.parentFile, "schema", "load", file.absolutePath, "--branch", selected.branchName)
+    }
+
+    override fun update(e: AnActionEvent) {
+        val virtualFile = e.getData(CommonDataKeys.VIRTUAL_FILE)
+        e.presentation.isEnabledAndVisible = virtualFile != null && isSchemaFile(virtualFile)
+    }
+
+    private fun isSchemaFile(virtualFile: VirtualFile): Boolean {
+        return !virtualFile.isDirectory && (virtualFile.extension == "yml" || virtualFile.extension == "yaml")
     }
 }
