@@ -1,6 +1,7 @@
 package app.opsmill.infrahub.toolwindow.yaml
 
 import app.opsmill.infrahub.api.InfrahubClientManager
+import app.opsmill.infrahub.infrahubctl.InfrahubctlRunner
 import app.opsmill.infrahub.graphql.GraphQLResultDialog
 import app.opsmill.infrahub.graphql.GraphQLVariableParser
 import app.opsmill.infrahub.graphql.GraphQLVariablesDialog
@@ -123,7 +124,42 @@ class YamlTreePanel(private val project: Project) : JPanel(BorderLayout()), Disp
                 }
             }
         })
+        popupMenu.add(JMenuItem("Run Transform").apply {
+            addActionListener {
+                getSelectedTransformName()?.let { transformName ->
+                    val basePath = project.basePath ?: return@let
+                    InfrahubctlRunner.runTransformCommand(project, transformName, File(basePath))
+                }
+            }
+        })
+        popupMenu.add(JMenuItem("Run Artifact Transform").apply {
+            addActionListener {
+                getSelectedArtifactTransformName()?.let { transformName ->
+                    val basePath = project.basePath ?: return@let
+                    InfrahubctlRunner.runTransformCommand(project, transformName, File(basePath))
+                }
+            }
+        })
         tree.componentPopupMenu = popupMenu
+    }
+
+    private fun getSelectedTransformName(): String? {
+        val node = tree.lastSelectedPathComponent as? DefaultMutableTreeNode ?: return null
+        val item = node.userObject as? YamlItemNodeData ?: return null
+        return when (item.kind) {
+            YamlItemKind.JINJA_TRANSFORM, YamlItemKind.PYTHON_TRANSFORM -> item.label
+            else -> null
+        }
+    }
+
+    private fun getSelectedArtifactTransformName(): String? {
+        val node = tree.lastSelectedPathComponent as? DefaultMutableTreeNode ?: return null
+        val item = node.userObject as? YamlItemNodeData ?: return null
+        return if (item.kind == YamlItemKind.ARTIFACT_DEFINITION) {
+            item.metadata["transformation"]
+        } else {
+            null
+        }
     }
 
     private fun openFile(path: String) {

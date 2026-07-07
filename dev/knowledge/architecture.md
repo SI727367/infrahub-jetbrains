@@ -86,9 +86,9 @@ Actions are registered in `plugin.xml` under `<actions>` and added to menu group
 ### Tree View Data Flow
 `ServerTreeModel` implements `javax.swing.tree.TreeModel`. It holds `DefaultMutableTreeNode` instances for servers and branches. `ServerTreePanel` drives a 10-second `javax.swing.Timer` to refresh.
 
-`SchemaTreePanel` uses SnakeYAML to parse `schemas/**/*.yml` and `schemas/**/*.yaml`, then builds a `DefaultTreeModel` with file nodes plus schema entry nodes for nodes, generics, attributes, and relationships.
+`SchemaTreePanel` uses SnakeYAML to parse `schemas/**/*.yml` and `schemas/**/*.yaml`, then builds a `DefaultTreeModel` with file nodes plus schema entry nodes for nodes, generics, attributes, and relationships. Its popup menu can also run infrahubctl schema check/load operations for the selected file or the whole configured schema directory.
 
-`YamlTreePanel` parses `.infrahub.yml` or `.infrahub.yaml`, renders sections like queries, transforms, artifact definitions, generators, and checks, and resolves linked file paths where present.
+`YamlTreePanel` parses `.infrahub.yml` or `.infrahub.yaml`, renders sections like queries, transforms, artifact definitions, generators, and checks, and resolves linked file paths where present. Its popup menu can execute GraphQL queries and run infrahubctl transforms for selected transform items or artifact-linked transformations.
 
 GraphQL query execution is launched from YAML query items. The flow parses variables from the query file, prompts for values, prompts for server and branch, executes against the selected branch, and shows formatted JSON results in a dialog.
 

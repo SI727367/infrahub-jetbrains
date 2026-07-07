@@ -1,5 +1,6 @@
 package app.opsmill.infrahub.toolwindow.schema
 
+import app.opsmill.infrahub.infrahubctl.InfrahubctlRunner
 import app.opsmill.infrahub.settings.InfrahubSettingsState
 import com.intellij.icons.AllIcons
 import com.intellij.openapi.Disposable
@@ -103,7 +104,41 @@ class SchemaTreePanel(private val project: Project) : JPanel(BorderLayout()), Di
         popupMenu.add(JMenuItem("Open Schema Directory").apply {
             addActionListener { openSchemaDirectory() }
         })
+        popupMenu.addSeparator()
+        popupMenu.add(JMenuItem("Check Selected Schema File").apply {
+            addActionListener {
+                getSelectedSchemaFile()?.let { InfrahubctlRunner.runSchemaCommand(project, File(it.absolutePath), "check") }
+            }
+        })
+        popupMenu.add(JMenuItem("Load Selected Schema File").apply {
+            addActionListener {
+                getSelectedSchemaFile()?.let { InfrahubctlRunner.runSchemaCommand(project, File(it.absolutePath), "load") }
+            }
+        })
+        popupMenu.add(JMenuItem("Check All Schema Files").apply {
+            addActionListener {
+                SchemaTreeParser(project).resolveSchemaDirectory()?.let {
+                    InfrahubctlRunner.runSchemaCommand(project, it, "check")
+                }
+            }
+        })
+        popupMenu.add(JMenuItem("Load All Schema Files").apply {
+            addActionListener {
+                SchemaTreeParser(project).resolveSchemaDirectory()?.let {
+                    InfrahubctlRunner.runSchemaCommand(project, it, "load")
+                }
+            }
+        })
         tree.componentPopupMenu = popupMenu
+    }
+
+    private fun getSelectedSchemaFile(): SchemaFileNodeData? {
+        val node = tree.lastSelectedPathComponent as? DefaultMutableTreeNode ?: return null
+        return when (val userObject = node.userObject) {
+            is SchemaFileNodeData -> userObject
+            is SchemaEntryNodeData -> (node.parent as? DefaultMutableTreeNode)?.userObject as? SchemaFileNodeData
+            else -> null
+        }
     }
 
     private fun openSchemaDirectory() {

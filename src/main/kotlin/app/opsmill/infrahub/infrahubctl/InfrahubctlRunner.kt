@@ -18,6 +18,43 @@ data class SelectedServerBranch(
 
 object InfrahubctlRunner {
 
+    fun runSchemaCommand(project: Project, schemaPath: File, action: String) {
+        if (!checkInfrahubctlBeforeCommand(project)) {
+            return
+        }
+
+        val selected = promptServerAndBranch(project) ?: return
+        val workingDirectory = if (schemaPath.isDirectory) schemaPath else schemaPath.parentFile
+        runCommand(
+            project,
+            selected,
+            workingDirectory,
+            "schema",
+            action,
+            schemaPath.absolutePath,
+            "--branch",
+            selected.branchName
+        )
+    }
+
+    fun runTransformCommand(project: Project, transformName: String, workingDirectory: File) {
+        if (!checkInfrahubctlBeforeCommand(project)) {
+            return
+        }
+
+        val selected = promptServerAndBranch(project) ?: return
+        runCommand(
+            project,
+            selected,
+            workingDirectory,
+            "transform",
+            "run",
+            transformName,
+            "--branch",
+            selected.branchName
+        )
+    }
+
     fun checkInfrahubctlBeforeCommand(project: Project): Boolean {
         val settings = InfrahubSettingsState.getInstance()
         if (!settings.showInfrahubctlWarnings) {
@@ -107,6 +144,10 @@ object InfrahubctlRunner {
                     .withWorkDirectory(workingDirectory)
                     .withEnvironment("INFRAHUB_ADDRESS", selected.serverAddress)
                     .withEnvironment("INFRAHUB_API_TOKEN", selected.token)
+
+                if (selected.token.isBlank()) {
+                    commandLine.environment.remove("INFRAHUB_API_TOKEN")
+                }
 
                 val output = CapturingProcessHandler(commandLine).runProcess()
                 ApplicationManager.getApplication().invokeLater {
