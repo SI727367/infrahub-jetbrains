@@ -41,6 +41,8 @@ src/main/kotlin/app/opsmill/infrahub/
 │   ├── LoadAllSchemaFilesAction.kt      # Load configured schema directory with infrahubctl
 │   ├── RunTransformAction.kt            # Run infrahubctl transform command
 │   └── ShowInfrahubctlGuidanceAction.kt # Open infrahubctl installation guidance
+├── common/
+│   └── ProjectTaskRunner.kt             # Background task helper for UI-safe async flows
 ├── settings/
 │   ├── InfrahubSettingsState.kt         # Persistent settings (servers, schema dir)
 │   ├── InfrahubSettingsConfigurable.kt  # Settings UI panel
@@ -91,11 +93,14 @@ Actions are registered in `plugin.xml` under `<actions>` and added to menu group
 
 `YamlTreePanel` parses `.infrahub.yml` or `.infrahub.yaml`, renders sections like queries, transforms, artifact definitions, generators, and checks, and resolves linked file paths where present. Its popup menu can execute GraphQL queries and run infrahubctl transforms for selected transform items or artifact-linked transformations.
 
-GraphQL query execution is launched from YAML query items. The flow parses variables from the query file, prompts for values, prompts for server and branch, executes against the selected branch, and shows formatted JSON results in a dialog.
+GraphQL query execution is launched from YAML query items. The flow parses variables from the query file, prompts for values, prompts for server and branch, executes against the selected branch, and shows formatted JSON results in a dialog. Long-running steps now use a small background-task helper instead of `GlobalScope`, keeping UI updates on the EDT.
 
 The status bar widget polls the first configured server every 10 seconds and shows `Infrahub: v{version} ({serverName})`, `Server unreachable`, or `No server set`.
 
 infrahubctl-backed actions prompt for server and then fetch real branches from the selected server before execution, resolve the executable from either the configured `infrahubctlPath` or the system `PATH`, and then run schema check, schema load, or transform commands with `INFRAHUB_ADDRESS` and `INFRAHUB_API_TOKEN` set in the process environment. A dedicated guidance action can open the installation documentation in the browser.
+
+### Background Execution
+`ProjectTaskRunner` wraps IntelliJ `Task.Backgroundable` and provides a small `onUiThread` helper. It is used for GraphQL branch loading, GraphQL execution, and schema visualization fetches.
 
 ### Dialogs
 Server and branch selection uses `Messages.showChooseDialog` (radio button list). Input and confirmation use `Messages.showInputDialog` and `Messages.showYesNoDialog`.

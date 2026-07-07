@@ -1,6 +1,7 @@
 package app.opsmill.infrahub.toolwindow.yaml
 
 import app.opsmill.infrahub.api.InfrahubClientManager
+import app.opsmill.infrahub.common.ProjectTaskRunner
 import app.opsmill.infrahub.infrahubctl.InfrahubctlRunner
 import app.opsmill.infrahub.graphql.GraphQLResultDialog
 import app.opsmill.infrahub.graphql.GraphQLVariableParser
@@ -15,9 +16,7 @@ import com.intellij.openapi.ui.Messages
 import com.intellij.openapi.vfs.LocalFileSystem
 import com.intellij.ui.ScrollPaneFactory
 import com.intellij.ui.treeStructure.Tree
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.GlobalScope
-import kotlinx.coroutines.launch
+import kotlinx.coroutines.runBlocking
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import org.yaml.snakeyaml.Yaml
@@ -34,6 +33,8 @@ import javax.swing.tree.DefaultTreeCellRenderer
  * Panel that displays sections from .infrahub.yml or .infrahub.yaml.
  */
 class YamlTreePanel(private val project: Project) : JPanel(BorderLayout()), Disposable {
+
+    private val jsonFormatter = Json { prettyPrint = true }
 
     private val tree = Tree()
     private val model = YamlTreeModel()
@@ -207,11 +208,18 @@ class YamlTreePanel(private val project: Project) : JPanel(BorderLayout()), Disp
             return
         }
 
-        GlobalScope.launch(Dispatchers.IO) {
+        ProjectTaskRunner.runBackground(project, "Load Infrahub branches") {
             try {
-                val branches = client.getAllBranches()
+                val branches = runBlocking { client.getAllBranches() }
                 val branchNames = branches.map { it.name }.toTypedArray()
-                ApplicationManager.getApplication().invokeAndWait {
+                if (branchNames.isEmpty()) {
+                    ProjectTaskRunner.onUiThread {
+                        Messages.showErrorDialog(project, "No branches found for server: $serverName", "Infrahub")
+                    }
+                    return@runBackground
+                }
+
+                ProjectTaskRunner.onUiThread {
                     val branchIndex = Messages.showChooseDialog(
                         project,
                         "Select branch",
@@ -221,22 +229,22 @@ class YamlTreePanel(private val project: Project) : JPanel(BorderLayout()), Disp
                         branchNames.firstOrNull()
                     )
                     if (branchIndex < 0) {
-                        return@invokeAndWait
+                        return@onUiThread
                     }
                     val branchName = branchNames[branchIndex]
 
-                    GlobalScope.launch(Dispatchers.IO) {
+                    ProjectTaskRunner.runBackground(project, "Execute GraphQL Query") {
                         try {
-                            val result = client.executeGraphQL(queryText, variables, branchName)
-                            val formatted = Json { prettyPrint = true }.encodeToString(result)
-                            ApplicationManager.getApplication().invokeLater {
+                            val result = runBlocking { client.executeGraphQL(queryText, variables, branchName) }
+                            val formatted = jsonFormatter.encodeToString(result)
+                            ProjectTaskRunner.onUiThread {
                                 GraphQLResultDialog(
                                     "GraphQL Result: ${item.label} [$branchName] ($serverName)",
                                     formatted
                                 ).show()
                             }
                         } catch (e: Exception) {
-                            ApplicationManager.getApplication().invokeLater {
+                            ProjectTaskRunner.onUiThread {
                                 Messages.showErrorDialog(
                                     project,
                                     e.message ?: "GraphQL execution failed",
@@ -247,7 +255,7 @@ class YamlTreePanel(private val project: Project) : JPanel(BorderLayout()), Disp
                     }
                 }
             } catch (e: Exception) {
-                ApplicationManager.getApplication().invokeLater {
+                ProjectTaskRunner.onUiThread {
                     Messages.showErrorDialog(project, e.message ?: "Failed to load branches", "Infrahub")
                 }
             }

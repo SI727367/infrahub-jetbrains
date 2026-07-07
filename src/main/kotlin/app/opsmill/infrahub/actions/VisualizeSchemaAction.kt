@@ -1,6 +1,7 @@
 package app.opsmill.infrahub.actions
 
 import app.opsmill.infrahub.api.InfrahubClientManager
+import app.opsmill.infrahub.common.ProjectTaskRunner
 import app.opsmill.infrahub.settings.InfrahubSettingsState
 import app.opsmill.infrahub.visualizer.SchemaVisualizerPanel
 import com.intellij.openapi.actionSystem.AnAction
@@ -8,9 +9,7 @@ import com.intellij.openapi.actionSystem.AnActionEvent
 import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.ui.Messages
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.GlobalScope
-import kotlinx.coroutines.launch
+import kotlinx.coroutines.runBlocking
 
 class VisualizeSchemaAction : AnAction("Visualize Schema") {
 
@@ -41,11 +40,16 @@ class VisualizeSchemaAction : AnAction("Visualize Schema") {
             return
         }
 
-        GlobalScope.launch(Dispatchers.IO) {
+        ProjectTaskRunner.runBackground(project, "Load Infrahub branches") {
             try {
-                val branches = client.getAllBranches()
+                val branches = runBlocking { client.getAllBranches() }
                 val branchNames = branches.map { it.name }.toTypedArray()
-                ApplicationManager.getApplication().invokeAndWait {
+                if (branchNames.isEmpty()) {
+                    showError(project, "No branches found for server: $serverName")
+                    return@runBackground
+                }
+
+                ProjectTaskRunner.onUiThread {
                     val branchIndex = Messages.showChooseDialog(
                         project,
                         "Select branch",
@@ -55,14 +59,14 @@ class VisualizeSchemaAction : AnAction("Visualize Schema") {
                         branchNames.firstOrNull()
                     )
                     if (branchIndex < 0) {
-                        return@invokeAndWait
+                        return@onUiThread
                     }
                     val branchName = branchNames[branchIndex]
 
-                    GlobalScope.launch(Dispatchers.IO) {
+                    ProjectTaskRunner.runBackground(project, "Fetch Infrahub schema") {
                         try {
-                            val schema = client.getSchema(branchName)
-                            ApplicationManager.getApplication().invokeLater {
+                            val schema = runBlocking { client.getSchema(branchName) }
+                            ProjectTaskRunner.onUiThread {
                                 SchemaVisualizerPanel.show(project, schema, serverName, branchName)
                             }
                         } catch (ex: Exception) {
