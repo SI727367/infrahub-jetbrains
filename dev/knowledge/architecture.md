@@ -1,80 +1,95 @@
-# Extension Architecture
+# Plugin Architecture
 
 ## Overview
 
-The Infrahub VSCode Extension provides development tools for Infrahub, an infrastructure automation platform. It connects to Infrahub servers and provides YAML schema support, GraphQL query execution, branch management, and schema visualization.
+The Infrahub JetBrains Plugin provides development tools for Infrahub, an infrastructure automation platform. It connects to Infrahub servers and provides YAML schema support, GraphQL query execution, branch management, and schema visualization. This is a port of the [Infrahub VSCode Extension](https://github.com/opsmill/infrahub-vscode) to the IntelliJ Platform using Kotlin and the IntelliJ Platform SDK.
 
 ## Entry Point
 
-`src/extension.ts` is the main activation point. It:
-1. Configures TLS settings from server configuration
-2. Creates tree view providers (servers, schema, YAML)
-3. Registers all commands
-4. Registers language feature providers (definition, symbols)
-5. Sets up status bar with 10-second refresh interval
-6. Sets up tree view auto-refresh (10-second interval)
+`src/main/kotlin/app/opsmill/infrahub/toolwindow/InfrahubToolWindowFactory.kt` is the main activation point. It:
+1. Creates three tool window tabs (Servers, Schema, YAML)
+2. Wires up `ServerTreePanel` with auto-refresh (10-second interval)
+3. Provides stub panels for Schema and YAML (Phases 4 and 5)
 
 ## Activation
 
-The extension activates when the workspace contains `.infrahub.yml` or `.infrahub.yaml` files (configured in `package.json` `activationEvents`).
+The plugin activates on IDE startup. The tool window is always visible once the plugin is installed.
 
 ## Component Map
 
 ```
-src/
-├── extension.ts                          # Entry point, wiring
-├── YamlDefinitionProvider.ts             # Go-to-definition for schema refs
-├── YamlDocumentSymbolProvider.ts         # Document outline for YAML
-├── common/
-│   ├── commands.ts                       # All command implementations
-│   ├── infrahub.ts                       # Schema discovery, GraphQL helpers
-│   └── utilities.ts                      # Dialogs, terminal, HTML generation
-├── treeview/
-│   ├── InfrahubServerTreeViewProvider.ts # Server connections & branches
-│   ├── infrahubSchemaTreeViewProvider.ts # Schema file navigation
-│   └── infrahubYamlTreeViewProvider.ts   # .infrahub.yml structure
-├── webview/
-│   ├── SchemaVisualizerPanel.ts          # Interactive schema graph
-│   └── schemaTypes.ts                    # TypeScript types for schemas
-└── test/
-    └── extension.test.ts                 # Test suite
+src/main/kotlin/app/opsmill/infrahub/
+├── toolwindow/
+│   ├── InfrahubToolWindowFactory.kt      # Entry point, tab wiring
+│   └── server/
+│       ├── ServerTreeModel.kt            # Tree model for servers and branches
+│       └── ServerTreePanel.kt            # Servers panel with auto-refresh
+├── actions/
+│   ├── NewBranchAction.kt               # Create branch (Phase 6)
+│   └── DeleteBranchAction.kt            # Delete branch (Phase 6)
+├── settings/
+│   ├── InfrahubSettingsState.kt         # Persistent settings (servers, schema dir)
+│   ├── InfrahubSettingsConfigurable.kt  # Settings UI panel
+│   └── EnvVarResolver.kt               # ${env:VAR} substitution
+└── api/
+    ├── InfrahubClient.kt               # HTTP client (OkHttp + kotlinx-serialization)
+    ├── InfrahubClientManager.kt        # Client cache, keyed by server name
+    └── models.kt                       # BranchInfo, SchemaNode, etc.
 ```
+
+## Migration Status
+
+| Phase | What | Status |
+|-------|------|--------|
+| 1 | Gradle project bootstrap | Done |
+| 2 | Settings / Configuration Service | Done |
+| 3 | API layer + Server tree panel | Done |
+| 6 | Branch management actions | Done |
+| 4 | Schema tree panel | TODO |
+| 5 | YAML tree panel | TODO |
+| 7 | GraphQL query execution | TODO |
+| 8 | Go-to-definition + document outline | TODO |
+| 9 | Schema visualizer (JCEF) | TODO |
+| 10 | Status bar | TODO |
+| 11 | infrahubctl integration | TODO |
 
 ## Key Patterns
 
-### Command Registration
-Commands are registered in `extension.ts` and implemented in `common/commands.ts`. Each command function receives the context it needs (tree items, SDK clients) via closures.
+### Action Registration
+Actions are registered in `plugin.xml` under `<actions>` and added to menu groups. Each action extends `AnAction` and implements `actionPerformed(e: AnActionEvent)`.
 
 ### Tree View Data Flow
-Tree view providers implement `vscode.TreeDataProvider<T>`. They fetch data from Infrahub servers via `infrahub-sdk` and transform it into `vscode.TreeItem` instances. Auto-refresh runs every 10 seconds.
+`ServerTreeModel` implements `javax.swing.tree.TreeModel`. It holds `DefaultMutableTreeNode` instances for servers and branches. `ServerTreePanel` drives a 10-second `javax.swing.Timer` to refresh.
+
+### Dialogs
+Server and branch selection uses `Messages.showChooseDialog` (radio button list). Input and confirmation use `Messages.showInputDialog` and `Messages.showYesNoDialog`.
 
 ### Language Features
-`YamlDefinitionProvider` and `YamlDocumentSymbolProvider` implement VSCode language provider interfaces. They parse YAML files to provide go-to-definition and document outline features for schema references.
+Go-to-definition and document outline are planned for Phase 8 via `PsiReferenceProvider` and `StructureViewExtension`.
 
 ### Webview Panels
-`SchemaVisualizerPanel` creates a webview that loads the `infrahub-schema-visualizer` package for interactive schema graph display.
+Schema visualizer (Phase 9) will use JCEF (`JBCefBrowser`) to load the `infrahub-schema-visualizer` JS package.
 
 ## Configuration
 
-Two VSCode settings (defined in `package.json`):
-- `infrahub-vscode.servers` - Array of server configs: `{name, address, api_token?, tls_insecure?}`
-- `infrahub-vscode.schemaDirectory` - Path to schema files (default: `"schemas"`)
+Settings in **Settings -> Infrahub**:
+- `servers` - List of server configs: `{name, address, apiToken, tlsInsecure}`
+- `schemaDirectory` - Path to schema files (default: `schemas`)
+- `infrahubctlPath` - Custom path to `infrahubctl` executable
 
-API tokens support `${env:VAR_NAME}` syntax for environment variable substitution.
+API tokens support `${env:VAR_NAME}` syntax resolved by `EnvVarResolver`.
 
 ## Dependencies
 
 | Package | Purpose |
 |---------|---------|
-| `infrahub-sdk` | Server API communication |
-| `yaml` | YAML parsing and stringification |
-| `yaml-ast-parser` | AST-based YAML parsing with line numbers |
-| `graphql` | GraphQL query parsing and variable extraction |
-| `infrahub-schema-visualizer` | Interactive schema visualization webview |
-| `@vscode/python-extension` | Python environment detection for transforms |
+| `okhttp3` | HTTP client for API calls |
+| `kotlinx-serialization-json` | JSON parsing matching `@Serializable` models |
+| IntelliJ Platform SDK | UI, actions, tool windows, JCEF |
 
 ## Build
 
-Plain TypeScript compilation (`tsc`), no bundler. See [ADR-0001](../adr/0001-plain-tsc-over-bundler.md).
-- Source: `src/` (TypeScript, strict mode, ES2022 target, Node16 modules)
-- Output: `out/` (JavaScript with source maps)
+Kotlin + Gradle with IntelliJ Platform Gradle Plugin.
+- Source: `src/main/kotlin/`
+- Tests: `src/test/kotlin/`
+- Build: `./gradlew buildPlugin` -> `build/distributions/infrahub-jetbrains-*.zip`

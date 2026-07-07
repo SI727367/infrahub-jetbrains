@@ -15,4 +15,16 @@
         <applicationConfigurable instance="app.opsmill.infrahub.settings.InfrahubSettingsConfigurable"
             displayName="Infrahub" id="app.opsmill.infrahub.settings"/>
     </extensions>
+
+    <!-- Phase 6: Branch Management Actions -->
+    <actions>
+        <action id="Infrahub.NewBranch" class="app.opsmill.infrahub.actions.NewBranchAction"
+            text="New Branch" description="Create a new Infrahub branch" icon="AllIcons.General.Add">
+            <add-to-group group-id="ToolsMenu" anchor="last"/>
+        </action>
+        <action id="Infrahub.DeleteBranch" class="app.opsmill.infrahub.actions.DeleteBranchAction"
+            text="Delete Branch" description="Delete an Infrahub branch" icon="AllIcons.Actions.GC">
+            <add-to-group group-id="ToolsMenu" anchor="after" relative-to-action="Infrahub.NewBranch"/>
+        </action>
+    </actions>
 </idea-plugin>
