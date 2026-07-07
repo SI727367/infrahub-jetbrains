@@ -195,3 +195,9 @@ node_modules
 .vscode-test/
 *.vsix
 **/.DS_Store
+
+# Agent planning docs — local only, do not commit
+MIGRATION_PLAN.md
+
+# IDE project files
+.idea/
