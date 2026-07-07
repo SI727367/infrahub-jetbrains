@@ -1,5 +1,6 @@
 package app.opsmill.infrahub.infrahubctl
 
+import app.opsmill.infrahub.api.InfrahubClientManager
 import app.opsmill.infrahub.settings.InfrahubSettingsState
 import com.intellij.execution.ExecutionException
 import com.intellij.execution.configurations.GeneralCommandLine
@@ -7,6 +8,7 @@ import com.intellij.execution.process.CapturingProcessHandler
 import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.ui.Messages
+import kotlinx.coroutines.runBlocking
 import java.io.File
 
 data class SelectedServerBranch(
@@ -79,7 +81,7 @@ object InfrahubctlRunner {
 
         return when (choice) {
             Messages.YES -> {
-                Messages.showInfoMessage(project, checker.getInstallationGuidance(), "Infrahub")
+                com.intellij.ide.BrowserUtil.browse("https://docs.infrahub.app/python-sdk/guides/installation")
                 false
             }
             Messages.NO -> true
@@ -108,25 +110,42 @@ object InfrahubctlRunner {
         }
 
         val server = servers[serverIndex]
-        val branchName = Messages.showInputDialog(
-            project,
-            "Enter branch name",
-            "Infrahub",
-            null,
-            "main",
-            null
-        )?.trim()
-
-        if (branchName.isNullOrEmpty()) {
+        val client = InfrahubClientManager.getInstance().getClient(server.name)
+        if (client == null) {
+            Messages.showErrorDialog(project, "No client available for server: ${server.name}", "Infrahub")
             return null
         }
 
-        return SelectedServerBranch(
-            serverName = server.name,
-            serverAddress = server.address,
-            token = server.apiToken,
-            branchName = branchName
-        )
+        return try {
+            val branches = runBlocking { client.getAllBranches() }
+            val branchNames = branches.map { it.name }.toTypedArray()
+            if (branchNames.isEmpty()) {
+                Messages.showErrorDialog(project, "No branches found for server: ${server.name}", "Infrahub")
+                null
+            } else {
+                val branchIndex = Messages.showChooseDialog(
+                    project,
+                    "Select branch",
+                    "Infrahub",
+                    null,
+                    branchNames,
+                    branchNames.first()
+                )
+                if (branchIndex < 0) {
+                    null
+                } else {
+                    SelectedServerBranch(
+                        serverName = server.name,
+                        serverAddress = server.address,
+                        token = server.apiToken,
+                        branchName = branchNames[branchIndex]
+                    )
+                }
+            }
+        } catch (e: Exception) {
+            Messages.showErrorDialog(project, e.message ?: "Failed to load branches", "Infrahub")
+            null
+        }
     }
 
     fun runCommand(

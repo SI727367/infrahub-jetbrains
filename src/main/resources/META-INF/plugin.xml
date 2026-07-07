@@ -56,5 +56,9 @@
             text="Run Transform" description="Run an Infrahub transform with infrahubctl">
             <add-to-group group-id="ToolsMenu" anchor="after" relative-to-action="Infrahub.LoadAllSchemaFiles"/>
         </action>
+        <action id="Infrahub.ShowInfrahubctlGuidance" class="app.opsmill.infrahub.actions.ShowInfrahubctlGuidanceAction"
+            text="Show infrahubctl Installation Guidance" description="Show installation help for infrahubctl">
+            <add-to-group group-id="ToolsMenu" anchor="after" relative-to-action="Infrahub.RunTransform"/>
+        </action>
     </actions>
 </idea-plugin>
