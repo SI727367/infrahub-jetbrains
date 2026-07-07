@@ -213,7 +213,7 @@ class SchemaTreeCellRenderer : DefaultTreeCellRenderer() {
                 SchemaEntryKind.NODE -> AllIcons.Nodes.Class
                 SchemaEntryKind.GENERIC -> AllIcons.Nodes.Type
                 SchemaEntryKind.PROFILE -> AllIcons.Nodes.Plugin
-                SchemaEntryKind.MENU -> AllIcons.Actions.Menu_open
+                SchemaEntryKind.MENU -> AllIcons.Actions.Show
                 SchemaEntryKind.OTHER -> AllIcons.Nodes.Tag
             }
             is SchemaSectionNodeData -> icon = userObject.icon

@@ -11,8 +11,8 @@
     <depends>org.jetbrains.plugins.yaml</depends>
 
     <!-- Phase 1: Settings/Configuration Service -->
-    <applicationService serviceImplementation="app.opsmill.infrahub.settings.InfrahubSettingsState"/>
     <extensions defaultExtensionNs="com.intellij">
+        <applicationService serviceImplementation="app.opsmill.infrahub.settings.InfrahubSettingsState"/>
         <applicationConfigurable instance="app.opsmill.infrahub.settings.InfrahubSettingsConfigurable"
             displayName="Infrahub" id="app.opsmill.infrahub.settings"/>
         <statusBarWidgetFactory id="InfrahubStatusBar"
