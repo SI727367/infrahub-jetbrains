@@ -33,7 +33,8 @@ src/main/kotlin/app/opsmill/infrahub/
 │       └── YamlTreePanel.kt              # YAML panel, parsing, file navigation
 ├── actions/
 │   ├── NewBranchAction.kt               # Create branch (Phase 6)
-│   └── DeleteBranchAction.kt            # Delete branch (Phase 6)
+│   ├── DeleteBranchAction.kt            # Delete branch (Phase 6)
+│   └── VisualizeSchemaAction.kt         # Fetch branch schema and open visualizer
 ├── settings/
 │   ├── InfrahubSettingsState.kt         # Persistent settings (servers, schema dir)
 │   ├── InfrahubSettingsConfigurable.kt  # Settings UI panel
@@ -45,6 +46,8 @@ src/main/kotlin/app/opsmill/infrahub/
 ├── yaml/
 │   ├── InfrahubGotoDeclarationHandler.kt # Go-to-definition for schema references
 │   └── InfrahubStructureViewFactory.kt   # Structure/outline for schema YAML files
+├── visualizer/
+│   └── SchemaVisualizerPanel.kt         # JCEF-based schema viewer panel
 └── api/
     ├── InfrahubClient.kt               # HTTP client (OkHttp + kotlinx-serialization)
     ├── InfrahubClientManager.kt        # Client cache, keyed by server name
@@ -63,7 +66,7 @@ src/main/kotlin/app/opsmill/infrahub/
 | 5 | YAML tree panel | Done |
 | 7 | GraphQL query execution | Done |
 | 8 | Go-to-definition + document outline | Done |
-| 9 | Schema visualizer (JCEF) | TODO |
+| 9 | Schema visualizer (JCEF) | Done |
 | 10 | Status bar | Done |
 | 11 | infrahubctl integration | TODO |
 
@@ -90,7 +93,7 @@ Server and branch selection uses `Messages.showChooseDialog` (radio button list)
 Schema YAML files now support go-to-definition and structure view integration. `InfrahubGotoDeclarationHandler` resolves combined `namespace + name` references across schema files, and `InfrahubStructureViewFactory` builds an outline for nodes, generics, attributes, and relationships.
 
 ### Webview Panels
-Schema visualizer (Phase 9) will use JCEF (`JBCefBrowser`) to load the `infrahub-schema-visualizer` JS package.
+Schema visualization uses `JBCefBrowser` and opens a new Infrahub tool window tab with schema content for the selected server and branch. A fallback message is shown if JCEF is unavailable.
 
 ## Configuration
 

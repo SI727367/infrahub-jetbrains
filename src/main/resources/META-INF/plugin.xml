@@ -32,5 +32,9 @@
             text="Delete Branch" description="Delete an Infrahub branch" icon="AllIcons.Actions.GC">
             <add-to-group group-id="ToolsMenu" anchor="after" relative-to-action="Infrahub.NewBranch"/>
         </action>
+        <action id="Infrahub.VisualizeSchema" class="app.opsmill.infrahub.actions.VisualizeSchemaAction"
+            text="Visualize Schema" description="Visualize Infrahub schema" icon="AllIcons.Actions.ShowViewer" >
+            <add-to-group group-id="ToolsMenu" anchor="after" relative-to-action="Infrahub.DeleteBranch"/>
+        </action>
     </actions>
 </idea-plugin>
