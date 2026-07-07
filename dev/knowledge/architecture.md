@@ -34,7 +34,12 @@ src/main/kotlin/app/opsmill/infrahub/
 ├── actions/
 │   ├── NewBranchAction.kt               # Create branch (Phase 6)
 │   ├── DeleteBranchAction.kt            # Delete branch (Phase 6)
-│   └── VisualizeSchemaAction.kt         # Fetch branch schema and open visualizer
+│   ├── VisualizeSchemaAction.kt         # Fetch branch schema and open visualizer
+│   ├── CheckSchemaFileAction.kt         # Validate one schema file with infrahubctl
+│   ├── LoadSchemaFileAction.kt          # Load one schema file with infrahubctl
+│   ├── CheckAllSchemaFilesAction.kt     # Validate configured schema directory with infrahubctl
+│   ├── LoadAllSchemaFilesAction.kt      # Load configured schema directory with infrahubctl
+│   └── RunTransformAction.kt            # Run infrahubctl transform command
 ├── settings/
 │   ├── InfrahubSettingsState.kt         # Persistent settings (servers, schema dir)
 │   ├── InfrahubSettingsConfigurable.kt  # Settings UI panel
@@ -48,6 +53,9 @@ src/main/kotlin/app/opsmill/infrahub/
 │   └── InfrahubStructureViewFactory.kt   # Structure/outline for schema YAML files
 ├── visualizer/
 │   └── SchemaVisualizerPanel.kt         # JCEF-based schema viewer panel
+├── infrahubctl/
+│   ├── InfrahubctlChecker.kt            # infrahubctl path discovery and availability checks
+│   └── InfrahubctlRunner.kt             # infrahubctl command execution and prompts
 └── api/
     ├── InfrahubClient.kt               # HTTP client (OkHttp + kotlinx-serialization)
     ├── InfrahubClientManager.kt        # Client cache, keyed by server name
@@ -68,7 +76,7 @@ src/main/kotlin/app/opsmill/infrahub/
 | 8 | Go-to-definition + document outline | Done |
 | 9 | Schema visualizer (JCEF) | Done |
 | 10 | Status bar | Done |
-| 11 | infrahubctl integration | TODO |
+| 11 | infrahubctl integration | Done |
 
 ## Key Patterns
 
@@ -85,6 +93,8 @@ Actions are registered in `plugin.xml` under `<actions>` and added to menu group
 GraphQL query execution is launched from YAML query items. The flow parses variables from the query file, prompts for values, prompts for server and branch, executes against the selected branch, and shows formatted JSON results in a dialog.
 
 The status bar widget polls the first configured server every 10 seconds and shows `Infrahub: v{version} ({serverName})`, `Server unreachable`, or `No server set`.
+
+infrahubctl-backed actions prompt for server and branch, resolve the executable from either the configured `infrahubctlPath` or the system `PATH`, and then run schema check, schema load, or transform commands with `INFRAHUB_ADDRESS` and `INFRAHUB_API_TOKEN` set in the process environment.
 
 ### Dialogs
 Server and branch selection uses `Messages.showChooseDialog` (radio button list). Input and confirmation use `Messages.showInputDialog` and `Messages.showYesNoDialog`.

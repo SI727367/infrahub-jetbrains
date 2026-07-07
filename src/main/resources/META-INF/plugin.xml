@@ -36,5 +36,25 @@
             text="Visualize Schema" description="Visualize Infrahub schema" icon="AllIcons.Actions.ShowViewer" >
             <add-to-group group-id="ToolsMenu" anchor="after" relative-to-action="Infrahub.DeleteBranch"/>
         </action>
+        <action id="Infrahub.CheckSchemaFile" class="app.opsmill.infrahub.actions.CheckSchemaFileAction"
+            text="Check Schema File" description="Validate a schema file with infrahubctl">
+            <add-to-group group-id="ToolsMenu" anchor="after" relative-to-action="Infrahub.VisualizeSchema"/>
+        </action>
+        <action id="Infrahub.LoadSchemaFile" class="app.opsmill.infrahub.actions.LoadSchemaFileAction"
+            text="Load Schema File" description="Load a schema file with infrahubctl">
+            <add-to-group group-id="ToolsMenu" anchor="after" relative-to-action="Infrahub.CheckSchemaFile"/>
+        </action>
+        <action id="Infrahub.CheckAllSchemaFiles" class="app.opsmill.infrahub.actions.CheckAllSchemaFilesAction"
+            text="Check All Schema Files" description="Validate all schema files with infrahubctl">
+            <add-to-group group-id="ToolsMenu" anchor="after" relative-to-action="Infrahub.LoadSchemaFile"/>
+        </action>
+        <action id="Infrahub.LoadAllSchemaFiles" class="app.opsmill.infrahub.actions.LoadAllSchemaFilesAction"
+            text="Load All Schema Files" description="Load all schema files with infrahubctl">
+            <add-to-group group-id="ToolsMenu" anchor="after" relative-to-action="Infrahub.CheckAllSchemaFiles"/>
+        </action>
+        <action id="Infrahub.RunTransform" class="app.opsmill.infrahub.actions.RunTransformAction"
+            text="Run Transform" description="Run an Infrahub transform with infrahubctl">
+            <add-to-group group-id="ToolsMenu" anchor="after" relative-to-action="Infrahub.LoadAllSchemaFiles"/>
+        </action>
     </actions>
 </idea-plugin>
