@@ -1,0 +1,18 @@
+<!-- Plugin Configuration File. Read more: https://plugins.jetbrains.com/docs/intellij/plugin-configuration-file.html -->
+<idea-plugin>
+    <id>app.opsmill.infrahub</id>
+    <name>Infrahub</name>
+    <vendor>OpsMill</vendor>
+    <description><![CDATA[
+        <p><b>Infrahub</b> is a JetBrains IntelliJ plugin for managing Infrahub infrastructure automation.</p>
+    ]]></description>
+
+    <depends>com.intellij.modules.platform</depends>
+
+    <!-- Phase 1: Settings/Configuration Service -->
+    <applicationService serviceImplementation="app.opsmill.infrahub.settings.InfrahubSettingsState"/>
+    <extensions defaultExtensionNs="com.intellij">
+        <applicationConfigurable instance="app.opsmill.infrahub.settings.InfrahubSettingsConfigurable"
+            displayName="Infrahub" id="app.opsmill.infrahub.settings"/>
+    </extensions>
+</idea-plugin>
