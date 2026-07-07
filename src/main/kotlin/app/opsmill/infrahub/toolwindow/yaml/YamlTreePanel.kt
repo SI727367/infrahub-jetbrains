@@ -15,6 +15,9 @@ import com.intellij.openapi.fileEditor.OpenFileDescriptor
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.ui.Messages
 import com.intellij.openapi.vfs.LocalFileSystem
+import com.intellij.openapi.vfs.VirtualFileManager
+import com.intellij.openapi.vfs.newvfs.BulkFileListener
+import com.intellij.openapi.vfs.newvfs.events.VFileEvent
 import com.intellij.ui.ScrollPaneFactory
 import com.intellij.ui.treeStructure.Tree
 import kotlinx.coroutines.runBlocking
@@ -43,6 +46,7 @@ class YamlTreePanel(private val project: Project) : JPanel(BorderLayout()), Disp
     private val cards = JPanel(cardLayout)
     private val emptyState = JLabel("No .infrahub.yml or .infrahub.yaml found", SwingConstants.CENTER)
     private val refreshButton = JButton("Refresh", AllIcons.Actions.Refresh)
+    private val messageBusConnection = project.messageBus.connect(this)
 
     init {
         tree.model = model
@@ -67,6 +71,7 @@ class YamlTreePanel(private val project: Project) : JPanel(BorderLayout()), Disp
         preferredSize = Dimension(250, 400)
 
         installPopupMenu()
+        installFileWatcher()
     }
 
     fun init() {
@@ -169,6 +174,25 @@ class YamlTreePanel(private val project: Project) : JPanel(BorderLayout()), Disp
         OpenFileDescriptor(project, virtualFile).navigate(true)
     }
 
+    private fun installFileWatcher() {
+        messageBusConnection.subscribe(VirtualFileManager.VFS_CHANGES, object : BulkFileListener {
+            override fun after(events: List<VFileEvent>) {
+                if (events.any { isInfrahubYamlChange(it.path) }) {
+                    ApplicationManager.getApplication().invokeLater {
+                        if (!project.isDisposed) {
+                            refresh()
+                        }
+                    }
+                }
+            }
+        })
+    }
+
+    private fun isInfrahubYamlChange(path: String): Boolean {
+        val normalizedPath = File(path).invariantSeparatorsPath
+        return normalizedPath.endsWith("/.infrahub.yml") || normalizedPath.endsWith("/.infrahub.yaml")
+    }
+
     private fun executeGraphQLQuery(item: YamlItemNodeData) {
         val queryFile = item.linkedPath ?: item.filePath
         val queryText = runCatching { File(queryFile).readText() }.getOrElse {
@@ -248,7 +272,9 @@ class YamlTreePanel(private val project: Project) : JPanel(BorderLayout()), Disp
         }
     }
 
-    override fun dispose() = Unit
+    override fun dispose() {
+        messageBusConnection.disconnect()
+    }
 }
 
 class YamlTreeCellRenderer : DefaultTreeCellRenderer() {

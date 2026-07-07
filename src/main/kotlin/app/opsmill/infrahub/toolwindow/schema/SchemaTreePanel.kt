@@ -8,6 +8,9 @@ import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.fileEditor.OpenFileDescriptor
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.vfs.LocalFileSystem
+import com.intellij.openapi.vfs.VirtualFileManager
+import com.intellij.openapi.vfs.newvfs.BulkFileListener
+import com.intellij.openapi.vfs.newvfs.events.VFileEvent
 import com.intellij.ui.ScrollPaneFactory
 import com.intellij.ui.treeStructure.Tree
 import org.yaml.snakeyaml.Yaml
@@ -31,6 +34,7 @@ class SchemaTreePanel(private val project: Project) : JPanel(BorderLayout()), Di
     private val cardLayout = CardLayout()
     private val cards = JPanel(cardLayout)
     private val refreshButton = JButton("Refresh", AllIcons.Actions.Refresh)
+    private val messageBusConnection = project.messageBus.connect(this)
 
     init {
         tree.model = model
@@ -55,6 +59,7 @@ class SchemaTreePanel(private val project: Project) : JPanel(BorderLayout()), Di
         preferredSize = Dimension(250, 400)
 
         installPopupMenu()
+        installFileWatcher()
     }
 
     fun init() {
@@ -152,7 +157,31 @@ class SchemaTreePanel(private val project: Project) : JPanel(BorderLayout()), Di
         OpenFileDescriptor(project, virtualFile).navigate(true)
     }
 
-    override fun dispose() = Unit
+    private fun installFileWatcher() {
+        messageBusConnection.subscribe(VirtualFileManager.VFS_CHANGES, object : BulkFileListener {
+            override fun after(events: List<VFileEvent>) {
+                if (events.any { isSchemaChange(it.path) }) {
+                    ApplicationManager.getApplication().invokeLater {
+                        if (!project.isDisposed) {
+                            refresh()
+                        }
+                    }
+                }
+            }
+        })
+    }
+
+    private fun isSchemaChange(path: String): Boolean {
+        val schemaDir = SchemaTreeParser(project).resolveSchemaDirectory() ?: return false
+        val normalizedPath = File(path).invariantSeparatorsPath
+        val normalizedSchemaDir = schemaDir.invariantSeparatorsPath.trimEnd('/') + "/"
+        return normalizedPath.startsWith(normalizedSchemaDir) &&
+            (normalizedPath.endsWith(".yml") || normalizedPath.endsWith(".yaml"))
+    }
+
+    override fun dispose() {
+        messageBusConnection.disconnect()
+    }
 }
 
 class SchemaTreeCellRenderer : DefaultTreeCellRenderer() {
