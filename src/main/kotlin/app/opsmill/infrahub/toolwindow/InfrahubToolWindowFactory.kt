@@ -2,6 +2,7 @@ package app.opsmill.infrahub.toolwindow
 
 import app.opsmill.infrahub.toolwindow.schema.SchemaTreePanel
 import app.opsmill.infrahub.toolwindow.server.ServerTreePanel
+import app.opsmill.infrahub.toolwindow.yaml.YamlTreePanel
 import com.intellij.openapi.components.Service
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.wm.ToolWindow
@@ -32,10 +33,8 @@ class InfrahubToolWindowFactory : ToolWindowFactory {
         val schemaContent = contentFactory.createContent(schemaPanel, "Schema", false)
         toolWindow.contentManager.addContent(schemaContent)
 
-        // Tab 3: YAML (stub for Phase 5)
-        val yamlPanel = YamlTreePanel(project).apply {
-            content.text = "YAML panel — coming in Phase 5"
-        }
+        // Tab 3: YAML
+        val yamlPanel = YamlTreePanel(project).also { it.init() }
         projectService.setYamlTreePanel(yamlPanel)
         val yamlContent = contentFactory.createContent(yamlPanel, "YAML", false)
         toolWindow.contentManager.addContent(yamlContent)
@@ -46,17 +45,6 @@ class InfrahubToolWindowFactory : ToolWindowFactory {
     }
 }
 
-/**
- * Stub YAML tree panel - to be implemented in Phase 5.
- */
-class YamlTreePanel(private val project: Project) : javax.swing.JPanel() {
-    val content = javax.swing.JLabel()
-
-    init {
-        layout = javax.swing.BoxLayout(this, javax.swing.BoxLayout.Y_AXIS)
-        add(content)
-    }
-}
 
 /**
  * Project-level service that keeps references to all three tree panels.
@@ -89,9 +77,14 @@ class InfrahubProjectService(private val project: Project) {
         schemaTreePanel?.refresh()
     }
 
+    fun refreshYamlTree() {
+        yamlTreePanel?.refresh()
+    }
+
     fun refreshAll() {
         refreshServerTree()
         refreshSchemaTree()
+        refreshYamlTree()
     }
 
     companion object {

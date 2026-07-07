@@ -10,7 +10,7 @@ The Infrahub JetBrains Plugin provides development tools for Infrahub, an infras
 1. Creates three tool window tabs (Servers, Schema, YAML)
 2. Wires up `ServerTreePanel` with auto-refresh (10-second interval)
 3. Wires up `SchemaTreePanel` to parse and display schema files from the configured schema directory
-4. Provides a stub panel for YAML (Phase 5)
+4. Wires up `YamlTreePanel` to parse and display sections from `.infrahub.yml` or `.infrahub.yaml`
 
 ## Activation
 
@@ -25,9 +25,12 @@ src/main/kotlin/app/opsmill/infrahub/
 │   ├── schema/
 │   │   ├── SchemaTreeModel.kt            # Tree model and node types for schema files
 │   │   └── SchemaTreePanel.kt            # Schema panel, YAML parsing, file navigation
-│   └── server/
-│       ├── ServerTreeModel.kt            # Tree model for servers and branches
-│       └── ServerTreePanel.kt            # Servers panel with auto-refresh
+│   ├── server/
+│   │   ├── ServerTreeModel.kt            # Tree model for servers and branches
+│   │   └── ServerTreePanel.kt            # Servers panel with auto-refresh
+│   └── yaml/
+│       ├── YamlTreeModel.kt              # Tree model and node types for .infrahub.yml sections
+│       └── YamlTreePanel.kt              # YAML panel, parsing, file navigation
 ├── actions/
 │   ├── NewBranchAction.kt               # Create branch (Phase 6)
 │   └── DeleteBranchAction.kt            # Delete branch (Phase 6)
@@ -50,7 +53,7 @@ src/main/kotlin/app/opsmill/infrahub/
 | 3 | API layer + Server tree panel | Done |
 | 6 | Branch management actions | Done |
 | 4 | Schema tree panel | Done |
-| 5 | YAML tree panel | TODO |
+| 5 | YAML tree panel | Done |
 | 7 | GraphQL query execution | TODO |
 | 8 | Go-to-definition + document outline | TODO |
 | 9 | Schema visualizer (JCEF) | TODO |
@@ -66,6 +69,8 @@ Actions are registered in `plugin.xml` under `<actions>` and added to menu group
 `ServerTreeModel` implements `javax.swing.tree.TreeModel`. It holds `DefaultMutableTreeNode` instances for servers and branches. `ServerTreePanel` drives a 10-second `javax.swing.Timer` to refresh.
 
 `SchemaTreePanel` uses SnakeYAML to parse `schemas/**/*.yml` and `schemas/**/*.yaml`, then builds a `DefaultTreeModel` with file nodes plus schema entry nodes for nodes, generics, attributes, and relationships.
+
+`YamlTreePanel` parses `.infrahub.yml` or `.infrahub.yaml`, renders sections like queries, transforms, artifact definitions, generators, and checks, and resolves linked file paths where present.
 
 ### Dialogs
 Server and branch selection uses `Messages.showChooseDialog` (radio button list). Input and confirmation use `Messages.showInputDialog` and `Messages.showYesNoDialog`.
