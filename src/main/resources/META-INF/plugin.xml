@@ -8,6 +8,7 @@
     ]]></description>
 
     <depends>com.intellij.modules.platform</depends>
+    <depends>org.jetbrains.plugins.yaml</depends>
 
     <!-- Phase 1: Settings/Configuration Service -->
     <applicationService serviceImplementation="app.opsmill.infrahub.settings.InfrahubSettingsState"/>
@@ -16,6 +17,9 @@
             displayName="Infrahub" id="app.opsmill.infrahub.settings"/>
         <statusBarWidgetFactory id="InfrahubStatusBar"
             implementation="app.opsmill.infrahub.statusbar.InfrahubStatusBarWidgetFactory"/>
+        <gotoDeclarationHandler implementation="app.opsmill.infrahub.yaml.InfrahubGotoDeclarationHandler"/>
+        <lang.psiStructureViewFactory language="yaml"
+            implementationClass="app.opsmill.infrahub.yaml.InfrahubStructureViewFactory"/>
     </extensions>
 
     <!-- Phase 6: Branch Management Actions -->

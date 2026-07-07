@@ -42,6 +42,9 @@ src/main/kotlin/app/opsmill/infrahub/
 │   └── GraphQLSupport.kt               # Variable parsing, prompt dialog, result dialog
 ├── statusbar/
 │   └── InfrahubStatusBarWidgetFactory.kt # Status bar widget, first-server version refresh
+├── yaml/
+│   ├── InfrahubGotoDeclarationHandler.kt # Go-to-definition for schema references
+│   └── InfrahubStructureViewFactory.kt   # Structure/outline for schema YAML files
 └── api/
     ├── InfrahubClient.kt               # HTTP client (OkHttp + kotlinx-serialization)
     ├── InfrahubClientManager.kt        # Client cache, keyed by server name
@@ -59,7 +62,7 @@ src/main/kotlin/app/opsmill/infrahub/
 | 4 | Schema tree panel | Done |
 | 5 | YAML tree panel | Done |
 | 7 | GraphQL query execution | Done |
-| 8 | Go-to-definition + document outline | TODO |
+| 8 | Go-to-definition + document outline | Done |
 | 9 | Schema visualizer (JCEF) | TODO |
 | 10 | Status bar | Done |
 | 11 | infrahubctl integration | TODO |
@@ -84,7 +87,7 @@ The status bar widget polls the first configured server every 10 seconds and sho
 Server and branch selection uses `Messages.showChooseDialog` (radio button list). Input and confirmation use `Messages.showInputDialog` and `Messages.showYesNoDialog`.
 
 ### Language Features
-Go-to-definition and document outline are planned for Phase 8 via `PsiReferenceProvider` and `StructureViewExtension`.
+Schema YAML files now support go-to-definition and structure view integration. `InfrahubGotoDeclarationHandler` resolves combined `namespace + name` references across schema files, and `InfrahubStructureViewFactory` builds an outline for nodes, generics, attributes, and relationships.
 
 ### Webview Panels
 Schema visualizer (Phase 9) will use JCEF (`JBCefBrowser`) to load the `infrahub-schema-visualizer` JS package.
