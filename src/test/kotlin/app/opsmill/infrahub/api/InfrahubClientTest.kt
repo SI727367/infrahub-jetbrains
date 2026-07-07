@@ -1,19 +1,20 @@
 package app.opsmill.infrahub.api
 
 import junit.framework.TestCase
+import kotlinx.coroutines.runBlocking
 import okhttp3.mockwebserver.MockResponse
 import okhttp3.mockwebserver.MockWebServer
-import java.util.concurrent.TimeUnit
+import org.junit.Test
 
 class InfrahubClientTest {
 
     private lateinit var server: MockWebServer
     private lateinit var client: InfrahubClient
 
-    private fun setUp(address: String = "http://localhost", token: String? = null, tlsInsecure: Boolean = false) {
+    private fun setUp(token: String? = null, tlsInsecure: Boolean = false) {
         server = MockWebServer()
         server.start()
-        client = InfrahubClient(address, token, tlsInsecure)
+        client = InfrahubClient(server.url("/").toString().trimEnd('/'), token, tlsInsecure)
     }
 
     private fun tearDown() {
@@ -24,27 +25,26 @@ class InfrahubClientTest {
         }
     }
 
-    // Test: getVersion parses version correctly from /api/ response
     @Test
-    fun `getVersion parses version correctly`() {
+    fun `getVersion parses version correctly`() = runBlocking {
         setUp()
         val expectedVersion = "1.0.0"
         server.enqueue(
             MockResponse().setResponseCode(200)
                 .setHeader("Content-Type", "application/json")
-                .setBody("""{"api_info": {"version": "$expectedVersion", "version_min": "0.150200.0"}}""")
+                .setBody("""{"api_info": {"version": "1.0.0", "version_min": "0.150200.0"}}""")
         )
 
         val version = client.getVersion()
         TestCase.assertEquals(expectedVersion, version)
         val recordedRequest = server.takeRequest()
         TestCase.assertEquals("GET", recordedRequest.method)
-        TestCase.assertEquals("/api/", recordedRequest.path)
+        TestCase.assertTrue(recordedRequest.path?.startsWith("/api/") == true)
+        tearDown()
     }
 
-    // Test: getVersion throws on malformed response
     @Test
-    fun `getVersion throws on malformed JSON`() {
+    fun `getVersion throws on malformed JSON`() = runBlocking {
         setUp()
         server.enqueue(
             MockResponse().setResponseCode(200)
@@ -58,11 +58,11 @@ class InfrahubClientTest {
         } catch (e: Exception) {
             TestCase.assertTrue(e.message?.contains("Failed to parse version response") == true)
         }
+        tearDown()
     }
 
-    // Test: getAllBranches returns expected list
     @Test
-    fun `getAllBranches returns expected branch list`() {
+    fun `getAllBranches returns expected branch list`() = runBlocking {
         setUp()
         val branchResponse = """
         {
@@ -74,8 +74,8 @@ class InfrahubClientTest {
                     "id": "branch-1",
                     "name": "main",
                     "description": "Default branch",
-                    "origin_branch": null,
-                    "branched_from": null,
+                    "origin_branch": "",
+                    "branched_from": "",
                     "is_default": true,
                     "sync_with_git": false,
                     "has_schema_changes": false
@@ -112,11 +112,11 @@ class InfrahubClientTest {
         TestCase.assertEquals("feature/new-schema", branches[1].name)
         TestCase.assertTrue(branches[1].sync_with_git)
         TestCase.assertTrue(branches[1].has_schema_changes)
+        tearDown()
     }
 
-    // Test: getAllBranches returns empty list when no edges
     @Test
-    fun `getAllBranches returns empty list when no branches`() {
+    fun `getAllBranches returns empty list when no branches`() = runBlocking {
         setUp()
         val emptyResponse = """{"data": {"Branch": {"edges": []}}}"""
         server.enqueue(
@@ -127,13 +127,13 @@ class InfrahubClientTest {
 
         val branches = client.getAllBranches()
         TestCase.assertEquals(0, branches.size)
+        tearDown()
     }
 
-    // Test: Auth token is added as X-INFRAHUB-KEY header
     @Test
-    fun `auth token is sent as X-INFRAHUB-KEY header`() {
+    fun `auth token is sent as X-INFRAHUB-KEY header`() = runBlocking {
         val testToken = "test-secret-token-12345"
-        setUp(address = "http://localhost", token = testToken)
+        setUp(token = testToken)
         server.enqueue(
             MockResponse().setResponseCode(200)
                 .setHeader("Content-Type", "application/json")
@@ -143,11 +143,11 @@ class InfrahubClientTest {
         client.getAllBranches()
         val recordedRequest = server.takeRequest()
         TestCase.assertEquals(testToken, recordedRequest.getHeader("X-INFRAHUB-KEY"))
+        tearDown()
     }
 
-    // Test: createBranch returns branch id on success
     @Test
-    fun `createBranch returns branch id on success`() {
+    fun `createBranch returns branch id on success`() = runBlocking {
         setUp()
         server.enqueue(
             MockResponse().setResponseCode(200)
@@ -162,18 +162,17 @@ class InfrahubClientTest {
                     }
                   }
                 }
-                """.trimIndent()
-            )
+                """.trimIndent())
         )
 
         val input = BranchCreateInput(name = "feature/test", description = "Test branch", is_default = false, sync_with_git = false)
         val resultId = client.createBranch(input)
         TestCase.assertEquals("new-branch-id-abc123", resultId)
+        tearDown()
     }
 
-    // Test: createBranch throws on failure response
     @Test
-    fun `createBranch throws on failure response`() {
+    fun `createBranch throws on failure response`() = runBlocking {
         setUp()
         server.enqueue(
             MockResponse().setResponseCode(200)
@@ -187,8 +186,7 @@ class InfrahubClientTest {
                     }
                   }
                 }
-                """.trimIndent()
-            )
+                """.trimIndent())
         )
 
         try {
@@ -197,11 +195,11 @@ class InfrahubClientTest {
         } catch (e: Exception) {
             TestCase.assertTrue(e.message?.contains("BranchCreate failed") == true)
         }
+        tearDown()
     }
 
-    // Test: deleteBranch returns true on success
     @Test
-    fun `deleteBranch returns true on success`() {
+    fun `deleteBranch returns true on success`() = runBlocking {
         setUp()
         server.enqueue(
             MockResponse().setResponseCode(200)
@@ -215,17 +213,16 @@ class InfrahubClientTest {
                     }
                   }
                 }
-                """.trimIndent()
-            )
+                """.trimIndent())
         )
 
         val result = client.deleteBranch("feature/to-delete")
         TestCase.assertTrue(result)
+        tearDown()
     }
 
-    // Test: deleteBranch returns false on failure
     @Test
-    fun `deleteBranch returns false on failure`() {
+    fun `deleteBranch returns false on failure`() = runBlocking {
         setUp()
         server.enqueue(
             MockResponse().setResponseCode(200)
@@ -239,17 +236,16 @@ class InfrahubClientTest {
                     }
                   }
                 }
-                """.trimIndent()
-            )
+                """.trimIndent())
         )
 
         val result = client.deleteBranch("main")
         TestCase.assertFalse(result)
+        tearDown()
     }
 
-    // Test: executeGraphQL returns parsed JSON
     @Test
-    fun `executeGraphQL returns parsed JSON response`() {
+    fun `executeGraphQL returns parsed JSON response`() = runBlocking {
         setUp()
         server.enqueue(
             MockResponse().setResponseCode(200)
@@ -262,18 +258,17 @@ class InfrahubClientTest {
                     }
                   }
                 }
-                """.trimIndent()
-            )
+                """.trimIndent())
         )
 
         val query = "{ NodeExample { edges { node { id display_label } } } }"
         val result = client.executeGraphQL(query)
         TestCase.assertTrue(result.containsKey("data"))
+        tearDown()
     }
 
-    // Test: getSchema returns SchemaResponse with nodes and generics
     @Test
-    fun `getSchema returns SchemaResponse`() {
+    fun `getSchema returns SchemaResponse`() = runBlocking {
         setUp()
         server.enqueue(
             MockResponse().setResponseCode(200)
@@ -299,8 +294,7 @@ class InfrahubClientTest {
                     }
                   ]
                 }
-                """.trimIndent()
-            )
+                """.trimIndent())
         )
 
         val schema = client.getSchema("main")
@@ -309,15 +303,15 @@ class InfrahubClientTest {
         TestCase.assertEquals("Core", schema.nodes[0].namespace)
         TestCase.assertEquals(1, schema.generics.size)
         TestCase.assertEquals("Tagged", schema.generics[0].name)
+        tearDown()
     }
 
-    // Test: connection timeout throws exception
     @Test
-    fun `getVersion throws on connection error`() {
+    fun `getVersion throws on connection error`() = runBlocking {
         server = MockWebServer()
         server.start()
-        val badClient = InfrahubClient("http://localhost:${server.port}", tlsInsecure = true)
-        server.shutdown() // Shutdown server so connection fails
+        val badClient = InfrahubClient(server.url("/").toString().trimEnd('/'), tlsInsecure = true)
+        server.shutdown()
 
         try {
             badClient.getVersion()

@@ -33,6 +33,9 @@ dependencies {
     // MockWebServer for unit tests
     testImplementation("com.squareup.okhttp3:mockwebserver:4.12.0")
 
+    // Coroutines test support for runBlocking in unit tests
+    testImplementation("org.jetbrains.kotlinx:kotlinx-coroutines-test:1.7.3")
+
     // IntelliJ Platform Gradle Plugin Dependencies Extension - read more: https://plugins.jetbrains.com/docs/intellij/tools-intellij-platform-gradle-plugin-dependencies-extension.html
     intellijPlatform {
         local("${System.getProperty("user.home")}/Applications/IntelliJ IDEA.app")
