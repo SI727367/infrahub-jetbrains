@@ -39,7 +39,8 @@ data class YamlItemNodeData(
     val kind: YamlItemKind,
     val filePath: String,
     val linkedPath: String? = null,
-    val metadata: Map<String, String> = emptyMap()
+    val metadata: Map<String, String> = emptyMap(),
+    val sourceFilePath: String
 ) {
     override fun toString(): String = buildString {
         append(label)

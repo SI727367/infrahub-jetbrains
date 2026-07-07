@@ -1,13 +1,24 @@
 package app.opsmill.infrahub.toolwindow.yaml
 
+import app.opsmill.infrahub.api.InfrahubClientManager
+import app.opsmill.infrahub.graphql.GraphQLResultDialog
+import app.opsmill.infrahub.graphql.GraphQLVariableParser
+import app.opsmill.infrahub.graphql.GraphQLVariablesDialog
+import app.opsmill.infrahub.settings.InfrahubSettingsState
 import com.intellij.icons.AllIcons
 import com.intellij.openapi.Disposable
 import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.fileEditor.OpenFileDescriptor
 import com.intellij.openapi.project.Project
+import com.intellij.openapi.ui.Messages
 import com.intellij.openapi.vfs.LocalFileSystem
 import com.intellij.ui.ScrollPaneFactory
 import com.intellij.ui.treeStructure.Tree
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.GlobalScope
+import kotlinx.coroutines.launch
+import kotlinx.serialization.encodeToString
+import kotlinx.serialization.json.Json
 import org.yaml.snakeyaml.Yaml
 import java.awt.BorderLayout
 import java.awt.CardLayout
@@ -103,12 +114,108 @@ class YamlTreePanel(private val project: Project) : JPanel(BorderLayout()), Disp
                 YamlTreeParser(project).findInfrahubFile()?.let { openFile(it.absolutePath) }
             }
         })
+        popupMenu.add(JMenuItem("Execute GraphQL Query").apply {
+            addActionListener {
+                val node = tree.lastSelectedPathComponent as? DefaultMutableTreeNode ?: return@addActionListener
+                val item = node.userObject as? YamlItemNodeData ?: return@addActionListener
+                if (item.kind == YamlItemKind.QUERY) {
+                    executeGraphQLQuery(item)
+                }
+            }
+        })
         tree.componentPopupMenu = popupMenu
     }
 
     private fun openFile(path: String) {
         val virtualFile = LocalFileSystem.getInstance().refreshAndFindFileByPath(path) ?: return
         OpenFileDescriptor(project, virtualFile).navigate(true)
+    }
+
+    private fun executeGraphQLQuery(item: YamlItemNodeData) {
+        val queryFile = item.linkedPath ?: item.filePath
+        val queryText = runCatching { File(queryFile).readText() }.getOrElse {
+            Messages.showErrorDialog(project, "Failed to read GraphQL file: $queryFile", "Infrahub")
+            return
+        }
+
+        val variableInfo = GraphQLVariableParser.parse(queryText)
+        val variableDialog = GraphQLVariablesDialog(variableInfo.required + variableInfo.optional)
+        if (!variableDialog.showAndGet()) {
+            return
+        }
+        val variables = variableDialog.getVariables()
+
+        val serverConfigs = InfrahubSettingsState.getInstance().servers
+        if (serverConfigs.isEmpty()) {
+            Messages.showErrorDialog(project, "No Infrahub servers configured.", "Infrahub")
+            return
+        }
+
+        val serverNames = serverConfigs.map { it.name }.toTypedArray()
+        val serverIndex = Messages.showChooseDialog(
+            project,
+            "Select Infrahub server",
+            "Execute GraphQL Query",
+            null,
+            serverNames,
+            serverNames.first()
+        )
+        if (serverIndex < 0) {
+            return
+        }
+        val serverName = serverNames[serverIndex]
+
+        val client = InfrahubClientManager.getInstance().getClient(serverName)
+        if (client == null) {
+            Messages.showErrorDialog(project, "No client available for server: $serverName", "Infrahub")
+            return
+        }
+
+        GlobalScope.launch(Dispatchers.IO) {
+            try {
+                val branches = client.getAllBranches()
+                val branchNames = branches.map { it.name }.toTypedArray()
+                ApplicationManager.getApplication().invokeAndWait {
+                    val branchIndex = Messages.showChooseDialog(
+                        project,
+                        "Select branch",
+                        "Execute GraphQL Query",
+                        null,
+                        branchNames,
+                        branchNames.firstOrNull()
+                    )
+                    if (branchIndex < 0) {
+                        return@invokeAndWait
+                    }
+                    val branchName = branchNames[branchIndex]
+
+                    GlobalScope.launch(Dispatchers.IO) {
+                        try {
+                            val result = client.executeGraphQL(queryText, variables, branchName)
+                            val formatted = Json { prettyPrint = true }.encodeToString(result)
+                            ApplicationManager.getApplication().invokeLater {
+                                GraphQLResultDialog(
+                                    "GraphQL Result: ${item.label} [$branchName] ($serverName)",
+                                    formatted
+                                ).show()
+                            }
+                        } catch (e: Exception) {
+                            ApplicationManager.getApplication().invokeLater {
+                                Messages.showErrorDialog(
+                                    project,
+                                    e.message ?: "GraphQL execution failed",
+                                    "Infrahub"
+                                )
+                            }
+                        }
+                    }
+                }
+            } catch (e: Exception) {
+                ApplicationManager.getApplication().invokeLater {
+                    Messages.showErrorDialog(project, e.message ?: "Failed to load branches", "Infrahub")
+                }
+            }
+        }
     }
 
     override fun dispose() = Unit
@@ -208,7 +315,12 @@ class YamlTreeParser(private val project: Project) {
             kind = kind,
             filePath = resolvedFile?.absolutePath ?: baseDir.resolve(".infrahub.yml").absolutePath,
             linkedPath = resolvedFile?.absolutePath,
-            metadata = metadata
+            metadata = metadata,
+            sourceFilePath = if (File(baseDir, ".infrahub.yml").exists()) {
+                File(baseDir, ".infrahub.yml").absolutePath
+            } else {
+                File(baseDir, ".infrahub.yaml").absolutePath
+            }
         )
     }
 

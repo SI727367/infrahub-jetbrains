@@ -38,6 +38,8 @@ src/main/kotlin/app/opsmill/infrahub/
 │   ├── InfrahubSettingsState.kt         # Persistent settings (servers, schema dir)
 │   ├── InfrahubSettingsConfigurable.kt  # Settings UI panel
 │   └── EnvVarResolver.kt               # ${env:VAR} substitution
+├── graphql/
+│   └── GraphQLSupport.kt               # Variable parsing, prompt dialog, result dialog
 └── api/
     ├── InfrahubClient.kt               # HTTP client (OkHttp + kotlinx-serialization)
     ├── InfrahubClientManager.kt        # Client cache, keyed by server name
@@ -54,7 +56,7 @@ src/main/kotlin/app/opsmill/infrahub/
 | 6 | Branch management actions | Done |
 | 4 | Schema tree panel | Done |
 | 5 | YAML tree panel | Done |
-| 7 | GraphQL query execution | TODO |
+| 7 | GraphQL query execution | Done |
 | 8 | Go-to-definition + document outline | TODO |
 | 9 | Schema visualizer (JCEF) | TODO |
 | 10 | Status bar | TODO |
@@ -71,6 +73,8 @@ Actions are registered in `plugin.xml` under `<actions>` and added to menu group
 `SchemaTreePanel` uses SnakeYAML to parse `schemas/**/*.yml` and `schemas/**/*.yaml`, then builds a `DefaultTreeModel` with file nodes plus schema entry nodes for nodes, generics, attributes, and relationships.
 
 `YamlTreePanel` parses `.infrahub.yml` or `.infrahub.yaml`, renders sections like queries, transforms, artifact definitions, generators, and checks, and resolves linked file paths where present.
+
+GraphQL query execution is launched from YAML query items. The flow parses variables from the query file, prompts for values, prompts for server and branch, executes against the selected branch, and shows formatted JSON results in a dialog.
 
 ### Dialogs
 Server and branch selection uses `Messages.showChooseDialog` (radio button list). Input and confirmation use `Messages.showInputDialog` and `Messages.showYesNoDialog`.
